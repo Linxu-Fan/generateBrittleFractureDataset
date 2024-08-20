@@ -125,131 +125,6 @@ double calculateTriangleArea3D(Eigen::Vector3d p0, Eigen::Vector3d p1, Eigen::Ve
 }
 
 
-// read .msh mesh file
-void Mesh::readMesh(std::string filePath, double thicknessMesh)
-{
-	thickness = thicknessMesh;
-
-	// read obj file
-	std::ifstream in;
-	in.open(filePath);
-	std::string line;
-	while (getline(in, line))
-	{
-		if (line.size() > 0)
-		{
-			std::vector<std::string> vecCoor = split(line, " ");
-			if (vecCoor[0] == "v")
-			{
-				Eigen::Vector3d pos = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
-				pos_node.push_back(pos);
-				vel_node.push_back(Eigen::Vector3d::Zero());
-			}
-			if (vecCoor[0] == "f")
-			{
-				Eigen::Vector3i tri = { std::stoi(vecCoor[1]) - 1 , std::stoi(vecCoor[2]) - 1 , std::stoi(vecCoor[3]) - 1 };
-				triangles.push_back(tri);
-			}			
-		}
-	}
-	in.close();
-
-
-	// calculate the area and volume of each node
-	{
-		vol_node.resize(pos_node.size());
-		for (int i = 0; i < triangles.size(); i++)
-		{
-			Eigen::Vector3i tri = triangles[i];
-			int v0 = tri[0], v1 = tri[1], v2 = tri[2];
-			Eigen::Vector3d p0 = pos_node[v0], p1 = pos_node[v1], p2 = pos_node[v2];
-			double area = calculateTriangleArea3D(p0, p1, p2);
-
-			area_triangle.push_back(area);
-
-			double vol = area * thicknessMesh;
-			vol_node[v0] += vol / 3.0;
-			vol_node[v1] += vol / 3.0;
-			vol_node[v2] += vol / 3.0;
-		}
-	}
-
-
-	// find triangles that share each vertex
-	{
-		node_triangles.resize(pos_node.size());
-		for (int i = 0; i < triangles.size(); i++)
-		{
-			Eigen::Vector3i tri = triangles[i];
-			int v0 = tri[0], v1 = tri[1], v2 = tri[2];
-			node_triangles[v0].push_back(i);
-			node_triangles[v1].push_back(i);
-			node_triangles[v2].push_back(i);
-		}
-	}
-
-
-	// find the boundary node
-	{
-
-		edgeTris.clear();
-		for (int i = 0; i < triangles.size(); i++)
-		{
-			Eigen::Vector3i tri = triangles[i];
-			int v0 = tri[0], v1 = tri[1], v2 = tri[2];
-
-			std::string e0 = std::to_string(std::min(v0, v1)) + "#" + std::to_string(std::max(v0, v1));
-			std::string e1 = std::to_string(std::min(v1, v2)) + "#" + std::to_string(std::max(v1, v2));
-			std::string e2 = std::to_string(std::min(v2, v0)) + "#" + std::to_string(std::max(v2, v0));
-
-			if (edgeTris.find(e0) == edgeTris.end())
-			{
-				edgeTris[e0][0] = i;
-				edgeTris[e0][1] = -99;
-			}
-			else
-			{
-				edgeTris[e0][1] = i;
-			}
-
-			if (edgeTris.find(e1) == edgeTris.end())
-			{
-				edgeTris[e1][0] = i;
-				edgeTris[e1][1] = -99;
-			}
-			else
-			{
-				edgeTris[e1][1] = i;
-			}
-
-			if (edgeTris.find(e2) == edgeTris.end())
-			{
-				edgeTris[e2][0] = i;
-				edgeTris[e2][1] = -99;
-			}
-			else
-			{
-				edgeTris[e2][1] = i;
-			}
-
-		}
-
-		for (std::map<std::string, Eigen::Vector2i>::iterator it = edgeTris.begin(); it != edgeTris.end(); it++)
-		{
-			if (it->second[1] == -99)
-			{
-				std::string name = it->first;
-				std::vector<std::string> vecCoor = split(name, "#");
-				ifBoundary_node[std::stoi(vecCoor[0])] = true;
-				ifBoundary_node[std::stoi(vecCoor[1])] = true;
-			}
-		}
-
-	}
-
-
-
-}
 
 
 Eigen::Matrix3d getSkewMatrix(Eigen::Vector3d vc)
@@ -264,117 +139,6 @@ Eigen::Matrix3d getSkewMatrix(Eigen::Vector3d vc)
 	return res;
 }
 
-
-void Mesh::calUndeformedFundamentalForm()
-{
-	// 1. calculate the triangle's normal
-	for (int i = 0; i < triangles.size(); i++)
-	{
-		Eigen::Vector3i tri = triangles[i];
-		int v0 = tri[0], v1 = tri[1], v2 = tri[2];
-
-		Eigen::Vector3d e1 = pos_node[v0] - pos_node[v1];
-		Eigen::Vector3d e2 = pos_node[v2] - pos_node[v1];
-
-		Eigen::Vector3d normal = e1.cross(e2).normalized();
-
-		normal_triangle.push_back(normal);
-	}
-
-	// 2. calculate the triangle's mid-edge normal
-	for (int i = 0; i < triangles.size(); i++)
-	{
-		Eigen::Vector3i tri = triangles[i];
-		int v0 = tri[0], v1 = tri[1], v2 = tri[2];
-
-		std::string e0 = std::to_string(std::min(v0, v1)) + "#" + std::to_string(std::max(v0, v1));
-		std::string e1 = std::to_string(std::min(v1, v2)) + "#" + std::to_string(std::max(v1, v2));
-		std::string e2 = std::to_string(std::min(v2, v0)) + "#" + std::to_string(std::max(v2, v0));
-
-
-		Eigen::Matrix3d midEdgeNorm = Eigen::Matrix3d::Zero();
-
-		Eigen::Vector2i tris = edgeTris[e0];
-		if (tris[1] = -99)
-		{
-			midEdgeNorm.col(2) = normal_triangle[i];
-		}
-		else
-		{
-			midEdgeNorm.col(2) = 0.5 * (normal_triangle[tris[0]] + normal_triangle[tris[1]]);
-		}
-
-		tris = edgeTris[e1];
-		if (tris[1] = -99)
-		{
-			midEdgeNorm.col(0) = normal_triangle[i];
-		}
-		else
-		{
-			midEdgeNorm.col(0) = 0.5 * (normal_triangle[tris[0]] + normal_triangle[tris[1]]);
-		}
-
-		tris = edgeTris[e2];
-		if (tris[1] = -99)
-		{
-			midEdgeNorm.col(1) = normal_triangle[i];
-		}
-		else
-		{
-			midEdgeNorm.col(1) = 0.5 * (normal_triangle[tris[0]] + normal_triangle[tris[1]]);
-		}
-
-		midEdge_normal_triangle.push_back(midEdgeNorm);
-	}
-
-	// 3. calculate T, Q, a_bar, b_bar
-	for (int i = 0; i < triangles.size(); i++)
-	{
-		Eigen::Vector3i tri = triangles[i];
-		int vi = tri[0], vj = tri[1], vk = tri[2];
-
-		Eigen::Vector3d Xi = pos_node[vi], Xj = pos_node[vj], Xk = pos_node[vk];
-		Eigen::Vector3d Ni = midEdge_normal_triangle[i].col(0), Nj = midEdge_normal_triangle[i].col(1), Nk = midEdge_normal_triangle[i].col(2);
-		Eigen::Vector3d Nijk = normal_triangle[i];
-
-
-		Eigen::Matrix3d T = Eigen::Matrix3d::Zero(), Q = Eigen::Matrix3d::Zero();
-		Eigen::Matrix2d a_bar = Eigen::Matrix2d::Zero(), b_bar = Eigen::Matrix2d::Zero();
-
-
-		T.col(0) = Xj - Xi;
-		T.col(1) = Xk - Xi;
-		T.col(2) = Nijk;
-
-		Q.col(0) = 2.0 * (Ni - Nj);
-		Q.col(1) = 2.0 * (Ni - Nk);
-	
-		a_bar(0, 0) = (Xj - Xi).dot(Xj - Xi);
-		a_bar(0, 1) = (Xj - Xi).dot(Xk - Xi);
-		a_bar(1, 0) = (Xj - Xi).dot(Xk - Xi);
-		a_bar(1, 1) = (Xk - Xi).dot(Xk - Xi);
-
-		b_bar(0, 0) = (Ni - Nj).dot(Xi - Xj);
-		b_bar(0, 1) = (Ni - Nj).dot(Xi - Xk);
-		b_bar(1, 0) = (Ni - Nk).dot(Xi - Xj);
-		b_bar(1, 1) = (Ni - Nk).dot(Xi - Xk);
-
-		// undeformed curvature and determinant
-		Eigen::Matrix2d l_bar = a_bar.inverse() * b_bar;
-		double H = (l_bar).trace() / 2.0;
-		double K = (l_bar).determinant();
-
-		T_triangle.push_back(T);
-		Q_triangle.push_back(Q);
-		l_bar_triangle.push_back(l_bar);
-		H_triangle.push_back(H);
-		K_triangle.push_back(K);
-
-
-	}
-
-
-}
 
 std::map<int, std::map<int, Eigen::Matrix3d>> calMatrixProductDerivative(Eigen::Matrix3d& B)
 {
@@ -432,4 +196,42 @@ std::map<int, std::map<int, Eigen::Matrix3d>> calMatrixProductDerivative(Eigen::
 }
 
 
+void objMesh::calMinMaxCoor()
+{
+	double maxx = -1.0E9, maxy = -1.0E9, maxz = -1.0E9;
+	double minx = 1.0E9, miny = 1.0E9, minz = 1.0E9;
+	for (auto ver : vertices)
+	{
+		maxx = std::max(maxx, ver.x());
+		maxy = std::max(maxy, ver.y());
+		maxz = std::max(maxz, ver.z());
+
+		minx = std::min(minx, ver.x());
+		miny = std::min(miny, ver.y());
+		minz = std::min(minz, ver.z());
+	}
+	Eigen::Vector3d min = { minx, miny, minz };
+	Eigen::Vector3d max = { maxx, maxy, maxz };
+	minMaxCoor.first = min;
+	minMaxCoor.second = max;
+}
+
+
+void objMesh::resizeAndRemove(double size)
+{
+	Eigen::Vector3d min = minMaxCoor.first;
+	Eigen::Vector3d max = minMaxCoor.second;
+
+	double maxDim = std::max(max[0] - min[0], std::max(max[1] - min[1], max[2] - min[2]));
+	double ratio = size / maxDim;
+	std::cout << "ratio = " << ratio << std::endl;
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		Eigen::Vector3d move = { (1 - size) / 2,(1 - size) / 2,(1 - size) / 2 };
+		Eigen::Vector3d vert = vertices[i] - min + move;
+		vert = (vert - move) * ratio + move;
+		vertices[i] = vert;
+	}
+
+}
 

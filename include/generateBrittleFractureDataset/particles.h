@@ -21,10 +21,6 @@ struct mpmParticle {
 	Eigen::Matrix3d affine = Eigen::Matrix3d::Zero(); // each particle's affine term
 	Eigen::Matrix3d cauchyStress = Eigen::Matrix3d::Zero(); // each particle's internal cauchy stress
 
-	// if the mpm particle is a cloth particle, it has the following additional properties
-	bool ifCloth = false;
-	int corresNode_Mesh = -99; // the corresponding mesh vertex of this MPM Particle
-
 
 	// node index in the support radius of this particle. The order of the vector is important
 	std::vector<int> supportNodes; // store the position of the node in vector "nodeVec" 
@@ -34,7 +30,7 @@ struct mpmParticle {
 
 	// material 
 	int material = 0; // material is stored in a vector;
-
+	bool breakable = true;
 	int color = 0;
 	double dp = 0;
 
@@ -42,12 +38,13 @@ struct mpmParticle {
 
 
 // initialize MPM particles from mesh
-void initParticlesFromMesh(std::vector<mpmParticle>& particles, Mesh& objMesh, int materialIndex, double density);
+void readBunnyMeshToParticles(std::vector<mpmParticle>& particles, objMesh& bunnyMesh, int materialIndex, double density, double voume, bool breakable, Eigen::Vector3d translation, int skipRatio);
 
-// calculate the deformed triangle's quantities
-void calDeformedTriQuantities(std::vector<mpmParticle>& particles, Mesh& objMesh);
 
-// calculate partial 
+void readObjMesh(std::string meshPath, std::string meshParPath, objMesh& meshSurf, objMesh& meshPars, double size);
+
+
+void readSphereObjMesh(std::string meshSpherePath, objMesh& meshSphere, double size);
 
 #endif
 

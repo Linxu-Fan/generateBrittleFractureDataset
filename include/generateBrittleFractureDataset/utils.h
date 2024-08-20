@@ -64,76 +64,18 @@ struct parametersSim {
 };
 
 
-struct Mesh
-{
-	/////////////////////////////////////////////
-	// information about whole mesh
-	/////////////////////////////////////////////
-	double thickness = -99;
-
-
-	/////////////////////////////////////////////
-	// information about mesh nodes
-	/////////////////////////////////////////////
-	std::vector<int> corresMPMPar_node; // the corresponding MPM particle of this node
-	std::vector<Eigen::Vector3d> pos_node; // position of each node
-	std::vector<Eigen::Vector3d> vel_node; // velocity of each node
-	std::vector<double> vol_node; // volume of each node
-	std::vector<bool> ifBoundary_node; // if this node is in the boundary or not
-	std::vector<bool> boundary_node; // if the node is in the boundary or not
-
-
-
-	/////////////////////////////////////////////
-	// information about mesh edges
-	/////////////////////////////////////////////
-	std::map<std::string, Eigen::Vector2i> edgeTris; // triangle(s) that share this edge. edge is defined as (smaller vert id) + "#" + (larger vert id); if there is only one triangle, the second int of Eigen::Vector2i is -99
-
-
-
-	/////////////////////////////////////////////
-	// information about mesh triangles
-	/////////////////////////////////////////////
-	std::vector<std::vector<int>> node_triangles; // triangles that share this vertex
-	std::vector<Eigen::Vector3i> triangles;
-	std::vector<double> area_triangle;	
-	// the followings are triangles' fundamental forms in the undeformed configuration
-	std::vector<Eigen::Vector3d> normal_triangle; // triangle's normal in the undeformed configuration
-	std::vector<Eigen::Matrix3d> midEdge_normal_triangle; // triangle mid-edge's normal in the undeformed configuration; each column is a normal
-	std::vector<Eigen::Matrix3d> T_triangle;
-	std::vector<Eigen::Matrix3d> Q_triangle;
-	std::vector<Eigen::Matrix2d> l_bar_triangle;
-	std::vector<double> H_triangle;
-	std::vector<double> K_triangle;
-	// the followings are triangles' fundamental forms in the deformed configuration
-	std::vector<Eigen::Vector3d> normal_deformed_triangle; 
-	std::vector<Eigen::Matrix3d> midEdge_normal_deformed_triangle;
-	std::vector<Eigen::Matrix3d> t_triangle;
-	std::vector<Eigen::Matrix3d> q_triangle;
-	std::vector<Eigen::Matrix2d> l_triangle;
-	std::vector<Eigen::Matrix3d> F0_triangle;
-	std::vector<Eigen::Matrix3d> F1_triangle;
-	std::vector<Eigen::Matrix3d> F2_triangle;
-
-
-
-
-	// read cloth mesh from obj file
-	void readMesh(std::string filePath, double thickness);
-
-	// calculate the triangle's T, Q, a_bar, b_bar etc.
-	void calUndeformedFundamentalForm();
-
-
-
-};
-
 
 // Struct of obj mesh
 struct objMesh
 {
 	std::vector<Eigen::Vector3d> vertices;
-	std::vector<std::vector<int>> faces;
+	std::vector<Eigen::Vector3i> faces;
+
+	std::pair<Eigen::Vector3d, Eigen::Vector3d> minMaxCoor;
+
+	void calMinMaxCoor();
+	void resizeAndRemove(double size); // resize and remove to region ((1-s)/2,(1-s)/2,(1-s)/2) -> ((1+s)/2,(1+s)/2,(1+s)/2)
+
 };
 
 int calculateID(int x, int y, int z, Eigen::Vector3d len, double dx); // coordinate of x and y, length in three dimensions of the cube, grid space
