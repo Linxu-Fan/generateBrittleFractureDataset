@@ -12,6 +12,7 @@
 #include <map>
 #include <string.h>
 #include <assert.h> 
+#include <random>
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 
@@ -22,7 +23,7 @@
 #include <cstring>
 #include <cfloat>
 
-
+const double PI = 3.141592653589793238463L;
 
 // Used to store elements which are w, w1, w11, w12, w2, w21, w22
 // 1) w is the weight. 2) w1 is the weight wrt the first axis. 3) w11 is the second-order derivative wrt the first axis.
@@ -77,6 +78,11 @@ struct objMesh
 	void resizeAndRemove(double size); // resize and remove to region ((1-s)/2,(1-s)/2,(1-s)/2) -> ((1+s)/2,(1+s)/2,(1+s)/2)
 
 };
+
+
+int generateRandomInt(int min, int max);
+
+double generateRandomDouble(double min, double max);
 
 int calculateID(int x, int y, int z, Eigen::Vector3d len, double dx); // coordinate of x and y, length in three dimensions of the cube, grid space
 

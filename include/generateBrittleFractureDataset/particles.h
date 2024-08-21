@@ -38,7 +38,7 @@ struct mpmParticle {
 
 
 // initialize MPM particles from mesh
-void readBunnyMeshToParticles(std::vector<mpmParticle>& particles, objMesh& bunnyMesh, int materialIndex, double density, double voume, bool breakable, Eigen::Vector3d translation, int skipRatio);
+void readBunnyMeshToParticles(std::vector<mpmParticle>& particles, objMesh& bunnyMesh, int materialIndex, double density, double voume, bool breakable, Eigen::Vector3d translation);
 
 
 void readObjMesh(std::string meshPath, std::string meshParPath, objMesh& meshSurf, objMesh& meshPars, double size);

@@ -1,11 +1,10 @@
 ﻿#include "particles.h"
 
 // initialize MPM particles from mesh
-void readBunnyMeshToParticles(std::vector<mpmParticle>& particles, objMesh& bunnyMesh, int materialIndex, double density, double voume, bool breakable, Eigen::Vector3d translation, int skipRatio)
+void readBunnyMeshToParticles(std::vector<mpmParticle>& particles, objMesh& bunnyMesh, int materialIndex, double density, double voume, bool breakable, Eigen::Vector3d translation)
 {
 	for (int i = 0; i < bunnyMesh.vertices.size(); i++)
 	{
-		if (i % skipRatio == 0)
 		{
 			mpmParticle par1;
 			par1.position = bunnyMesh.vertices[i] + translation;

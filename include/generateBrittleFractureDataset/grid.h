@@ -25,6 +25,10 @@ struct Grid {
 	std::vector<double> supportParticlesWeight; // store the weight of particle to the grid node 
 	std::vector<Eigen::Vector3d> supportParticlesDeltaWeight; // store the weight of node to the particle
 
+
+	// if this node contacins two kinds of particles
+	Eigen::Vector2i twoPoints = {-99 , -99};
+
 };
 
 
