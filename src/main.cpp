@@ -443,7 +443,7 @@ int main()
 		parametersSim param;
 		param.numOfThreads = numOfThreads;
 		param.dt = 1.0E-6;
-		param.dx = cbrt(2.0 / numBunnyInteriorPar);
+		param.dx = cbrt(2.0 / numBunnyInteriorPar) / 2;
 		param.gravity = {0,0,0};
 		param.updateDenpendecies();
 
@@ -451,13 +451,16 @@ int main()
 		// initialize three types of materials
 		Material material1;
 		material1.density = 3000;
-		material1.E = 3.2E10;
-		material1.nu = 0.35;
+		material1.E = 3.2E12;
+		material1.Gf = 3.2E5;
+		material1.nu = 0.2;
 		material1.bendingStressThreshold = 250;
 
-		material1.thetaf = 5.0E7;
-		material1.lch = 0.75 / (1 + 0.75) / material1.calHsBar();
+		material1.thetaf = 8.0E9;
+		double hsTarget = 0.45;
+		material1.lch = hsTarget / (1 + hsTarget) / material1.calHsBar();
 		material1.updateDenpendecies();
+		std::cout << "material1.lch = " << material1.lch << std::endl;
 		std::cout << "material1.HsBar * lch = " << material1.Hs << std::endl;
 
 		std::vector<Material> partclieMaterial;
@@ -518,7 +521,7 @@ int main()
 		int numBunnyInteriorVerts = bunnyMeshInterior.vertices.size();
 
 		// generate numData datasets	
-		for (int k = 0; k < numData; k++)
+		for (int k = 6743; k < numData; k++)
 		{
 			// Ste 1: read bunny particles
 			std::vector<mpmParticle> particles;
@@ -568,7 +571,6 @@ int main()
 					}
 				}
 				nearestPtInBunnyInterior = bunnyInteriorVt;
-
 
 
 				std::ofstream outfile12("./output/nearestPts.obj", std::ios::trunc);
@@ -623,7 +625,12 @@ int main()
 					readBunnyMeshToParticles(particles, sphereMeshSurfInterior, 0, material1.density, param.dx * param.dx * param.dx / 8.0, false, Eigen::Vector3d::Zero(), dirToMove.normalized() * sphereVelMag);
 					bool twoContact2 = checkIfContatc(particles, param);
 				}
-							
+						
+
+
+				param.force_position = bunnyMeshInterior.vertices[bunnyInteriorVt];
+				param.force_direction = dirToMove.normalized();
+				param.force_magnitude = 200;
 				
 			}
 

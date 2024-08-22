@@ -2,9 +2,9 @@
 
 
 // calculate particles' weights and find neighbouring nodes
-void calWeightsAndNodes(std::vector<mpmParticle>& particles, parametersSim& param, std::vector<Grid>& nodesVec)
+void calWeightsAndNodes(std::vector<mpmParticle>& particles, parametersSim& param, std::vector<Grid>& nodesVec, std::map<std::string, int>& gridMap)
 {
-	std::map<std::string, int> gridMap; // store the key and value of gridMap: active grid
+	// store the key and value of gridMap: active grid
 
 	Eigen::Vector3i minCellIndex = { 100000000, 100000000, 100000000 };
 	Eigen::Vector3i maxCellIndex = { -100000000, -100000000, -100000000 };
@@ -350,9 +350,12 @@ void particle2Grid(std::vector<mpmParticle>& particles, parametersSim& param, st
 			double weight = nodesVec[g].supportParticlesWeight[p];
 
 			double mass = particles[parPosInParticleVec].mass;
-			Eigen::Vector3d modVelocity  = particles[parPosInParticleVec].velocity + particles[parPosInParticleVec].affine * (nodesVec[g].position - particles[parPosInParticleVec].position);
+			Eigen::Vector3d CMultiPos = nodesVec[g].position - particles[parPosInParticleVec].position;
+			Eigen::Vector3d affineContribution = particles[parPosInParticleVec].affine * CMultiPos;
+
+			// transfer mass and momentum
 			nodesVec[g].mass += mass * weight;
-			nodesVec[g].momentum += mass * weight * modVelocity;
+			nodesVec[g].momentum += mass * weight * (particles[parPosInParticleVec].velocity + affineContribution);
 		}
 	}
 
@@ -367,30 +370,30 @@ void updateParInternalForce(std::vector<mpmParticle>& particles, parametersSim& 
 	for (int f = 0; f < particles.size(); f++)
 	{
 		Eigen::Matrix3d F = particles[f].F;
-		double J = particles[f].F.determinant();
+		double J = F.determinant();
 		int materialIndex = particles[f].material;
 		Eigen::Matrix3d cauchyStressE = (particleMaterial[materialIndex].lambda * log(J) / J - particleMaterial[materialIndex].mu / J) * Eigen::Matrix3d::Identity() + particleMaterial[materialIndex].mu / J * F * F.transpose();
+
+		//Eigen::Matrix3d cauchyStressE = particleMaterial[materialIndex].mu * (13.0 / 8.0) * (13.0 / 8.0) * (F - Eigen::Matrix3d::Identity()) / J * F.transpose();
 		
-
-
-
-		if (particles[f].breakable == true)
+		if (particles[f].breakable)
 		{
+			// compute eigenvalue and eigenvector
 			Eigen::EigenSolver<Eigen::MatrixXd> es(cauchyStressE);
-			Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real(), es.eigenvalues()[1].real(), es.eigenvalues()[2].real() };
+			Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real() ,  es.eigenvalues()[1].real() ,  es.eigenvalues()[2].real() };
 			Eigen::Matrix3d eigenVectors;
-			eigenVectors << es.eigenvectors().real();
+			eigenVectors << es.eigenvectors().col(0)[0].real(), es.eigenvectors().col(1)[0].real(), es.eigenvectors().col(2)[0].real(),
+				es.eigenvectors().col(0)[1].real(), es.eigenvectors().col(1)[1].real(), es.eigenvectors().col(2)[1].real(),
+				es.eigenvectors().col(0)[2].real(), es.eigenvectors().col(1)[2].real(), es.eigenvectors().col(2)[2].real();
 			double maxEigenValue = std::max(std::max(eigenValues[0], eigenValues[1]), eigenValues[2]);
+
+
 			if (maxEigenValue > particleMaterial[materialIndex].thetaf)
 			{
 				double tempDp = (1 + particleMaterial[materialIndex].Hs) * (1 - particleMaterial[materialIndex].thetaf / maxEigenValue);
-				if (tempDp >= particleMaterial[materialIndex].damageThreshold)
+				if (maxEigenValue > (1 + 1 / particleMaterial[materialIndex].Hs) * particleMaterial[materialIndex].thetaf)
 				{
-					double expDp = 2 / (1 + 1 / (exp(particleMaterial[materialIndex].sigmoidK * tempDp))) - 1;
-					if (expDp > particles[f].dp)
-					{
-						particles[f].dp = expDp;
-					};
+					particles[f].dp = 1.0;
 				}
 				else
 				{
@@ -401,34 +404,35 @@ void updateParInternalForce(std::vector<mpmParticle>& particles, parametersSim& 
 				};
 			};
 
-
-			Eigen::Vector3d sigmaPlus = { 0, 0, 0 };
-			for (int i = 0; i < 3; i++) {
-				if (eigenValues[i] > 0) {
-
-					if (particles[f].dp >= particleMaterial[materialIndex].damageThreshold) 
+			Eigen::Vector3d sigmaPlus = { 0 , 0 , 0 };
+			for (int i = 0; i < 3; i++)
+			{
+				if (eigenValues[i] > 0)
+				{
+					if (particles[f].dp >= particleMaterial[materialIndex].damageThreshold)
 					{
 						sigmaPlus[i] = 0;
 					}
-					else {
+					else
+					{
 						sigmaPlus[i] = (1 - particles[f].dp) * eigenValues[i];
 					};
-
 				}
-				else {
+				else
+				{
 					sigmaPlus[i] = eigenValues[i];
 				};
 			};
 
 			Eigen::Matrix3d sigma = Eigen::Matrix3d::Zero();
-			for (int i = 0; i < 3; i++) {
+			for (int i = 0; i < 3; i++)
+			{
 				sigma = sigma + sigmaPlus[i] * eigenVectors.col(i) * (eigenVectors.col(i).transpose());
 			};
 
 			cauchyStressE = sigma;
 		}
 		
-
 		particles[f].cauchyStress = cauchyStressE;
 
 	}
@@ -453,8 +457,14 @@ void calculateNodeForce(std::vector<mpmParticle>& particles, parametersSim& para
 				// nodesVec[g].force += -weight * param.dt * particles[parPosInParticleVec].volume * (particles[parPosInParticleVec].F).determinant() * particles[parPosInParticleVec].cauchyStress
 				// 	* nodesVec[g].supportParticlesDeltaWeight[p];
 
+
+				Eigen::Vector3d CMultiPos = nodesVec[g].position - particles[parPosInParticleVec].position;
+				nodesVec[g].force += -weight / param.DP * param.dt * particles[parPosInParticleVec].volume * (particles[parPosInParticleVec].F).determinant() * (particles[parPosInParticleVec].cauchyStress * CMultiPos).transpose();
+
+
+
 				//MLS-MPM implementation
-				nodesVec[g].force += -weight / param.DP * param.dt * particles[parPosInParticleVec].volume * (particles[parPosInParticleVec].F).determinant() * (particles[parPosInParticleVec].cauchyStress * (nodesVec[g].position - particles[parPosInParticleVec].position)).transpose();
+				// nodesVec[g].force += -weight / param.DP * param.dt * particles[parPosInParticleVec].volume * (particles[parPosInParticleVec].F).determinant() * (particles[parPosInParticleVec].cauchyStress * (nodesVec[g].position - particles[parPosInParticleVec].position)).transpose();
 			}
 		}		
 	}
@@ -503,7 +513,7 @@ void grid2Particle(std::vector<mpmParticle>& particles, parametersSim& param, st
 		}
 		particles[f].F = (Eigen::Matrix3d::Identity() + param.dt * affine) * particles[f].F;		
 		particles[f].affine = affine;
-		//particles[f].affine = (1 - param.nu) * affinePrime + param.nu / 2.0 * (affinePrime - affinePrime.transpose());
+
 
 		if (particles[f].color != 0)
 		{
@@ -520,18 +530,64 @@ void advanceStep(std::vector<mpmParticle>& particles, parametersSim& param, std:
 {
 	// // initialize background grid nodes
 	std::vector<Grid> nodesVec;
+	std::map<std::string, int> gridMap;
+
+
 	// calculate the reationreship between particles and background grid 
-	calWeightsAndNodes(particles, param, nodesVec);
+	calWeightsAndNodes(particles, param, nodesVec, gridMap);
 	// transfer information from particle to grdi nodes
 	particle2Grid(particles, param, nodesVec);
 	// update each material particle's cauchy stress
 	updateParInternalForce(particles, param, particleMaterial);
+
+
+
+	{
+		Eigen::Vector3d forceMagnitude = param.force_direction * param.force_magnitude;
+		Eigen::Vector3d forcePosition = param.force_position;
+
+
+		struct weightAndDreri WD = calWeight(param.dx, forcePosition);
+		Eigen::Vector3i ppIndex = WD.ppIndex;
+		Eigen::MatrixXd weightForce = WD.weight;
+
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				for (int k = 0; k < 3; k++) {
+					std::string ID = calculateID_string(ppIndex[0] + i, ppIndex[1] + j, ppIndex[2] + k);
+					double weight = weightForce(0, i) * weightForce(1, j) * weightForce(2, k);
+					int nodeIndex = gridMap[ID];
+					if (weight != 0) 
+					{
+						int eid = gridMap[ID];
+						nodesVec[nodeIndex].force += weight * forceMagnitude;
+					};
+				};
+			};
+		};
+	}
+	
+
+	
+
+
 	// calculate the grid node's internal force induced by particles
 	calculateNodeForce(particles, param, nodesVec);
 	// grid nodes momentum update
 	gridUpdate(nodesVec, param);
 	// transfer information back form grid to particles
 	grid2Particle(particles, param, nodesVec);
+
+	{
+		//std::ofstream outfile3("./output/nodes_" + std::to_string(timestep) + ".obj", std::ios::trunc);
+		//for (int k = 0; k < nodesVec.size(); k++)
+		//{
+		//	Eigen::Vector3d scale = nodesVec[k].position;
+		//	outfile3 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+		//}
+		//outfile3.close();
+	}
+
 
 };
 

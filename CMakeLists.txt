@@ -42,6 +42,10 @@ add_executable(
     src/weights.cpp
     src/advance.cpp
     src/utils.cpp
+    src/damageGradient.cpp
+    src/extractCrack.cpp
+    include/generateBrittleFractureDataset/damageGradient.h
+    include/generateBrittleFractureDataset/extractCrack.h
     include/generateBrittleFractureDataset/particles.h
     include/generateBrittleFractureDataset/grid.h
     include/generateBrittleFractureDataset/weights.h

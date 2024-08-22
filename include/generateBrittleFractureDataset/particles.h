@@ -34,6 +34,9 @@ struct mpmParticle {
 	int color = 0;
 	double dp = 0;
 
+	Eigen::Vector3d deltaD = { 0 , 0 , 0 }; // particle's damage gradient
+	double Dg = 0;
+
 };
 
 

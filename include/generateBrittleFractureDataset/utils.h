@@ -30,6 +30,7 @@ const double PI = 3.141592653589793238463L;
 // 4) w12 is the compound partial derivative which is the same as w21.
 // 5) w2 is the weight wrt the second axis. 6) It is equal to w12. 7) w22 is the second-order derivative wrt the second axis.
 typedef Eigen::Matrix<double, 7, 1> Vector7d;
+typedef std::complex<double> DComplex;
 
 struct parametersSim {
 
@@ -37,6 +38,11 @@ struct parametersSim {
 	int numOfThreads = 6;
 
 	Eigen::Vector3d gravity = {0 , 0 , 0 };
+
+
+	Eigen::Vector3d force_position = {0 , 0 , 0 };
+	Eigen::Vector3d force_direction = {0 , 0 , 0 };
+	double force_magnitude = 0;
 
 	// Bcakground Eulerian grid
 	double dx = 2.0E-3; // grid space

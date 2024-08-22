@@ -29,6 +29,10 @@ struct Grid {
 	// if this node contacins two kinds of particles
 	Eigen::Vector2i twoPoints = {-99 , -99};
 
+	double Di = 0; // value of damage field
+	double sw = 0; // sum of particle-grid weight
+	Eigen::Vector3d deltaDi = { 0, 0, 0 };
+
 };
 
 

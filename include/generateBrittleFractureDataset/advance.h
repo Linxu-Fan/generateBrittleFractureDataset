@@ -8,7 +8,7 @@
 
 
 // find the surrounding support nodes of each particle and calculate the weights of the particle
-void calWeightsAndNodes(std::vector<mpmParticle>& particles, parametersSim& param, std::vector<Grid>& nodesVec);
+void calWeightsAndNodes(std::vector<mpmParticle>& particles, parametersSim& param, std::vector<Grid>& nodesVec, std::map<std::string, int>& gridMap);
 
 
 // particle to grid transfer
