@@ -43,6 +43,11 @@ struct Material
 		Hs = HsBar * lch / (1.0 - HsBar * lch);
 	}
 
+	double calHsBar()
+	{
+		return thetaf * thetaf / 2.0 / E / Gf;
+	}
+
 };
 
 

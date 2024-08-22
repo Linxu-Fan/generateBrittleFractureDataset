@@ -370,7 +370,65 @@ void updateParInternalForce(std::vector<mpmParticle>& particles, parametersSim& 
 		double J = particles[f].F.determinant();
 		int materialIndex = particles[f].material;
 		Eigen::Matrix3d cauchyStressE = (particleMaterial[materialIndex].lambda * log(J) / J - particleMaterial[materialIndex].mu / J) * Eigen::Matrix3d::Identity() + particleMaterial[materialIndex].mu / J * F * F.transpose();
-			
+		
+
+
+
+		if (particles[f].breakable == true)
+		{
+			Eigen::EigenSolver<Eigen::MatrixXd> es(cauchyStressE);
+			Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real(), es.eigenvalues()[1].real(), es.eigenvalues()[2].real() };
+			Eigen::Matrix3d eigenVectors;
+			eigenVectors << es.eigenvectors().real();
+			double maxEigenValue = std::max(std::max(eigenValues[0], eigenValues[1]), eigenValues[2]);
+			if (maxEigenValue > particleMaterial[materialIndex].thetaf)
+			{
+				double tempDp = (1 + particleMaterial[materialIndex].Hs) * (1 - particleMaterial[materialIndex].thetaf / maxEigenValue);
+				if (tempDp >= particleMaterial[materialIndex].damageThreshold)
+				{
+					double expDp = 2 / (1 + 1 / (exp(particleMaterial[materialIndex].sigmoidK * tempDp))) - 1;
+					if (expDp > particles[f].dp)
+					{
+						particles[f].dp = expDp;
+					};
+				}
+				else
+				{
+					if (tempDp > particles[f].dp)
+					{
+						particles[f].dp = tempDp;
+					};
+				};
+			};
+
+
+			Eigen::Vector3d sigmaPlus = { 0, 0, 0 };
+			for (int i = 0; i < 3; i++) {
+				if (eigenValues[i] > 0) {
+
+					if (particles[f].dp >= particleMaterial[materialIndex].damageThreshold) 
+					{
+						sigmaPlus[i] = 0;
+					}
+					else {
+						sigmaPlus[i] = (1 - particles[f].dp) * eigenValues[i];
+					};
+
+				}
+				else {
+					sigmaPlus[i] = eigenValues[i];
+				};
+			};
+
+			Eigen::Matrix3d sigma = Eigen::Matrix3d::Zero();
+			for (int i = 0; i < 3; i++) {
+				sigma = sigma + sigmaPlus[i] * eigenVectors.col(i) * (eigenVectors.col(i).transpose());
+			};
+
+			cauchyStressE = sigma;
+		}
+		
+
 		particles[f].cauchyStress = cauchyStressE;
 
 	}

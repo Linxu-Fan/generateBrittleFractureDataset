@@ -224,7 +224,6 @@ void objMesh::resizeAndRemove(double size)
 
 	double maxDim = std::max(max[0] - min[0], std::max(max[1] - min[1], max[2] - min[2]));
 	double ratio = size / maxDim;
-	std::cout << "ratio = " << ratio << std::endl;
 	for (int i = 0; i < vertices.size(); i++)
 	{
 		Eigen::Vector3d move = { (1 - size) / 2,(1 - size) / 2,(1 - size) / 2 };
@@ -243,9 +242,9 @@ int generateRandomInt(int min, int max)
 	return distr(eng); // generate the number
 }
 
-double generateRandomDouble(double min, double max)
+double generateRandomDouble(double min, double max, std::random_device rd)
 {
-	std::random_device rd;  // obtain a random number from hardware
+	//std::random_device rd;  // obtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
 	std::uniform_real_distribution<> distr(min, max); // define the range
 

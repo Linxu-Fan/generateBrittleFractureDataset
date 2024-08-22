@@ -82,7 +82,7 @@ struct objMesh
 
 int generateRandomInt(int min, int max);
 
-double generateRandomDouble(double min, double max);
+double generateRandomDouble(double min, double max, std::random_device rd);
 
 int calculateID(int x, int y, int z, Eigen::Vector3d len, double dx); // coordinate of x and y, length in three dimensions of the cube, grid space
 

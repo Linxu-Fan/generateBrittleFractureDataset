@@ -432,87 +432,166 @@ int main()
 			numOfThreads = 24;
 		}
 
+		std::random_device rd;
+		int numBunnyInteriorPar = 20000;
+		int numData = 10000;
+		double sphereRadius = 0.02;
+		int sphereParSkipRatio = 10;
+		double sphereVelMag = 100;
 
 		// simulation parameters
 		parametersSim param;
 		param.numOfThreads = numOfThreads;
-		param.dt = 1.0E-2;
-		param.dx = 0.01;
+		param.dt = 1.0E-6;
+		param.dx = cbrt(2.0 / numBunnyInteriorPar);
+		param.gravity = {0,0,0};
 		param.updateDenpendecies();
 
 
 		// initialize three types of materials
 		Material material1;
-		material1.density = 100;
-		material1.E = 3.2E4;
+		material1.density = 3000;
+		material1.E = 3.2E10;
+		material1.nu = 0.35;
 		material1.bendingStressThreshold = 250;
-		material1.lch = sqrt(3) * param.dx;
+
+		material1.thetaf = 5.0E7;
+		material1.lch = 0.75 / (1 + 0.75) / material1.calHsBar();
 		material1.updateDenpendecies();
+		std::cout << "material1.HsBar * lch = " << material1.Hs << std::endl;
+
 		std::vector<Material> partclieMaterial;
 		partclieMaterial.push_back(material1);
 
 
-		
-		objMesh bunnyMeshSurf, bunnyMeshPars;
-		readObjMesh("./input/bunny.obj", "./input/bunnyParticles.obj", bunnyMeshSurf, bunnyMeshPars, 0.95);
-		objMesh sphereMeshPar;
-		double sphereRadius = 0.02;
-		readSphereObjMesh("./input/sphereParticles.obj", sphereMeshPar, sphereRadius);
-		int numBunnySurfVerts = bunnyMeshSurf.vertices.size();
+		// Generate random seeds
+		{
+			//std::ofstream outfile4(outputPath + "//randomSeeds.txt", std::ios::trunc);
+			//for (int h = 0; h < 100000; h++)
+			//{
 
-		// generate numData datasets
-		int numData = 10000;
+			//	std::random_device rd;
+			//	std::mt19937 eng(rd());
+			//	std::uniform_real_distribution<> distr(0.0, 1.0);
+
+			//	double theta = 2 * PI * distr(eng); // Angle around the z-axis
+			//	double phi = acos(1 - 2 * distr(eng)); // Angle from the z-axis
+
+			//	double radius = 1.0; // Radius of the sphere
+
+			//	// Convert spherical coordinates to Cartesian coordinates
+			//	double x = radius * sin(phi) * cos(theta) + 0.5;
+			//	double y = radius * sin(phi) * sin(theta) + 0.5;
+			//	double z = radius * cos(phi) + 0.5;
+			//	outfile4 << std::scientific << std::setprecision(8) << x << " " << y << " " << z << std::endl;
+
+			//}
+			//outfile4.close();
+		}
+
+		// Read seeds
+		std::vector<Eigen::Vector3d> seeds;
+		{
+			std::ifstream in;
+			in.open("./input/randomSeeds.txt");
+			std::string line;
+
+			while (getline(in, line))
+			{
+				if (line.size() > 0)
+				{
+					std::vector<std::string> vecCoor = split(line, " ");
+					Eigen::Vector3d vt = { std::stod(vecCoor[0]) , std::stod(vecCoor[1]) , std::stod(vecCoor[2]) };
+					seeds.push_back(vt);
+				}
+			}
+			in.close();
+		}
+
+		
+		objMesh bunnyMeshSurf, bunnyMeshInterior;
+		readObjMesh("./input/bunny.obj", "./input/bunnyParticles_"+std::to_string(numBunnyInteriorPar) + ".obj", bunnyMeshSurf, bunnyMeshInterior, 0.95);
+		objMesh sphereMeshSurfInterior;
+		
+		readSphereObjMesh("./input/sphereParticles.obj", sphereMeshSurfInterior, sphereRadius);
+		int numBunnySurfVerts = bunnyMeshSurf.vertices.size();
+		int numBunnyInteriorVerts = bunnyMeshInterior.vertices.size();
+
+		// generate numData datasets	
 		for (int k = 0; k < numData; k++)
 		{
-			// read bunny particles
+			// Ste 1: read bunny particles
 			std::vector<mpmParticle> particles;
-			readBunnyMeshToParticles(particles, bunnyMeshPars, 0, material1.density, param.dx * param.dx * param.dx / 8.0, true, Eigen::Vector3d::Zero());
+			readBunnyMeshToParticles(particles, bunnyMeshInterior, 0, material1.density, param.dx * param.dx * param.dx / 8.0, true, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero());
 
 
-			// read sphere particles
-			int sphereParSkipRatio = 10;
+			// Step 2: read sphere particles
+			int nearestPtInBunnyInterior = -99;
 			{
 				// Step 1: calcualte the diaplacement of shpere
-				double theta = generateRandomDouble(0, PI);
-				double phi = generateRandomDouble(0, 2.0 * PI);
-				Eigen::Vector3d translation = { std::sin(theta) * std::cos(phi) - 0.5 , std::sin(theta) * std::sin(phi) - 0.5 , std::cos(theta) - 0.5 };
+				Eigen::Vector3d translation = seeds[k];
 				std::vector<Eigen::Vector3d> vertSphere;
-				for (int f = 0; f < sphereMeshPar.vertices.size(); f++)
+				for (int f = 0; f < sphereMeshSurfInterior.vertices.size(); f++)
 				{
 					if (f % sphereParSkipRatio == 0)
 					{
-						vertSphere.push_back(sphereMeshPar.vertices[f] + translation);
+						vertSphere.push_back(sphereMeshSurfInterior.vertices[f] + translation);
 					}				
 				}
 
 
+				std::cout << "vertSphere.size() = " << vertSphere.size() << std::endl;
+
+				std::ofstream outfilew3("./output/vtSphere.obj", std::ios::trunc);
+				for (int kw = 0; kw < vertSphere.size(); kw++)
+				{
+					outfilew3 << std::scientific << std::setprecision(8) << "v " << vertSphere[kw][0] << " " << vertSphere[kw][1] << " " << vertSphere[kw][2] << std::endl;
+				}
+				outfilew3.close();
+
+
+
 				// Step 2: calculate the nearest distance to the bunny surface
 				double minDis = 1.0e8;
-				int bunnySurfVt = -99, sphereSurfVt = -99;
-				for (int bv = 0; bv < bunnyMeshSurf.vertices.size(); bv++)
+				int bunnyInteriorVt = -99, sphereInteriorVt = -99;
+				for (int sv = 0; sv < vertSphere.size(); sv++)
 				{
-					for (int sv = 0; sv < vertSphere.size(); sv++)
+					for (int bv = 0; bv < bunnyMeshInterior.vertices.size(); bv++)
 					{
-						double dis = (bunnyMeshSurf.vertices[bv] - vertSphere[sv]).norm();
+						double dis = (vertSphere[sv] - bunnyMeshInterior.vertices[bv]).norm();
 						if (dis < minDis)
 						{
 							minDis = dis;
-							bunnySurfVt = bv;
-							sphereSurfVt = sv;
+							sphereInteriorVt = sv;
+							bunnyInteriorVt = bv;						
 						}
 					}
 				}
+				nearestPtInBunnyInterior = bunnyInteriorVt;
+
+
+
+				std::ofstream outfile12("./output/nearestPts.obj", std::ios::trunc);
+				outfile12 << std::scientific << std::setprecision(8) << "v " << bunnyMeshInterior.vertices[bunnyInteriorVt][0] << " " << bunnyMeshInterior.vertices[bunnyInteriorVt][1] << " " << bunnyMeshInterior.vertices[bunnyInteriorVt][2] << " " << std::endl;
+				outfile12 << std::scientific << std::setprecision(8) << "v " << vertSphere[sphereInteriorVt][0] << " " << vertSphere[sphereInteriorVt][1] << " " << vertSphere[sphereInteriorVt][2] << " " << std::endl;
+				outfile12.close();
+
 								
 				// Step 3: move sphere particles to the target position
-				Eigen::Vector3d dirToMove = bunnyMeshSurf.vertices[bunnySurfVt] - vertSphere[sphereSurfVt];
-				dirToMove = dirToMove * 0.8;
+				std::cout << "Moving sphere particles to the target position!" << std::endl;
+				Eigen::Vector3d dirToMoveOriginal = bunnyMeshInterior.vertices[bunnyInteriorVt] - vertSphere[sphereInteriorVt];
+				Eigen::Vector3d dirToMove = dirToMoveOriginal;
+				double res = 3.5 * param.dx * dirToMove.norm() / 1000;
+				dirToMove = dirToMoveOriginal * (1.0 - 3.5 * param.dx / dirToMoveOriginal.norm());			
+				std::cout << "res = " << res << std::endl;
 				{					
 					double minDisContact = -99.0;
 					bool twoContact = false;
-					for (int d = 140; d < 1000; d++)
+					std::cout << "d = ";
+					for (int d = 0; d < 1000; d++)
 					{
-						std::cout << "d = " << d << std::endl;
-						double ra = (double)d * 0.001;
+						std::cout << d << " , ";
+						double ra = (double)d * res;
 						dirToMove += dirToMove.normalized() * sphereRadius * ra;
 						
 						std::vector<Eigen::Vector3d> vertSphereFinalTmp;
@@ -524,15 +603,15 @@ int main()
 						objMesh sphereMeshParTmp;
 						std::vector<mpmParticle> particlesTmp = particles;
 						sphereMeshParTmp.vertices = vertSphereFinalTmp;
-						readBunnyMeshToParticles(particlesTmp, sphereMeshParTmp, 0, material1.density, param.dx * param.dx * param.dx / 8.0, false, Eigen::Vector3d::Zero());
+						readBunnyMeshToParticles(particlesTmp, sphereMeshParTmp, 0, material1.density, param.dx * param.dx * param.dx / 8.0, false, Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero());
 						twoContact = checkIfContatc(particlesTmp, param);
 						if (twoContact)
 						{
-							minDisContact = ra - 0.001;
+							minDisContact = ra - res;
 							break;
 						}
 					}
-					std::cout << "minDisContact = " << minDisContact << std::endl;
+					std::cout << std::endl;
 
 					dirToMove += dirToMove.normalized() * sphereRadius * minDisContact;
 					std::vector<Eigen::Vector3d> vertSphereFinal;
@@ -540,78 +619,92 @@ int main()
 					{
 						vertSphereFinal.push_back(vertSphere[f] + dirToMove);
 					}
-					sphereMeshPar.vertices = vertSphereFinal;
-					readBunnyMeshToParticles(particles, sphereMeshPar, 0, material1.density, param.dx * param.dx * param.dx / 8.0, false, Eigen::Vector3d::Zero());
+					sphereMeshSurfInterior.vertices = vertSphereFinal;
+					readBunnyMeshToParticles(particles, sphereMeshSurfInterior, 0, material1.density, param.dx * param.dx * param.dx / 8.0, false, Eigen::Vector3d::Zero(), dirToMove.normalized() * sphereVelMag);
 					bool twoContact2 = checkIfContatc(particles, param);
-					std::cout << "twoContact2 = " << twoContact << std::endl;
-
 				}
-				
-				
-				
-				
-				
-				
-				/*double minDisContact = -99.0;
-				bool twoContact = false;
-				for (int d = 1000; d > 0; d--)
-				{
-					std::cout << "d = " << d << std::endl;
-					double ra = (double)d * 0.01;
-					dirToMove -= dirToMove.normalized() * sphereRadius * ra;
-					std::vector<Eigen::Vector3d> vertSphereFinalTmp;
-					for (int f = 0; f < vertSphere.size(); f++)
-					{
-						vertSphereFinalTmp.push_back(vertSphere[f] + dirToMove);
-					}
-
-					objMesh sphereMeshParTmp;
-					std::vector<mpmParticle> particlesTmp = particles;
-					sphereMeshParTmp.vertices = vertSphereFinalTmp;
-					readBunnyMeshToParticles(particlesTmp, sphereMeshParTmp, 0, material1.density, param.dx * param.dx * param.dx / 8.0, false, Eigen::Vector3d::Zero());
-					twoContact = checkIfContatc(particlesTmp, param);
-					if (twoContact)
-					{
-						minDisContact = ra + 0.01;
-						break;
-					}
-				}
-				std::cout << "minDisContact = " << minDisContact << std::endl;*/
-				//dirToMove -= dirToMove.normalized() * sphereRadius * minDisContact;
-				//std::vector<Eigen::Vector3d> vertSphereFinal;
-				//for (int f = 0; f < vertSphere.size(); f++)
-				//{
-				//	vertSphereFinal.push_back(vertSphere[f] + dirToMove);
-				//}
-				//sphereMeshPar.vertices = vertSphereFinal;
-				//readBunnyMeshToParticles(particles, sphereMeshPar, 0, material1.density, param.dx * param.dx * param.dx / 8.0, false, Eigen::Vector3d::Zero());
-				//bool twoContact2 = checkIfContatc(particles, param);
-				//std::cout << "twoContact2 = " << twoContact << std::endl;
+							
 				
 			}
 
 	
-
+			// Step 3: find nearnest point in the bunny's surface
 			{
-				std::ofstream outfile2(outputPath + "//bunny.obj", std::ios::trunc);
-				for (int k = 0; k < particles.size(); k++)
+				int nearestPtInBunnySurf = -99;
+				double minDisIS = 1.0E8;
+				std::cout << "nearestPtInBunnyInterior = " << nearestPtInBunnyInterior << std::endl;
+				Eigen::Vector3d interiorPtCoor = bunnyMeshInterior.vertices[nearestPtInBunnyInterior];
+				for (int g = 0; g < bunnyMeshSurf.vertices.size(); g++)
 				{
-					Eigen::Vector3d scale = particles[k].position;
-					outfile2 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+					if ((bunnyMeshSurf.vertices[g] - interiorPtCoor).norm() < minDisIS)
+					{
+						minDisIS = (bunnyMeshSurf.vertices[g] - interiorPtCoor).norm();
+						nearestPtInBunnySurf = g;
+					}
 				}
-				outfile2.close();
 			}
+
 
 
 			std::cout << "particles.size() = " << particles.size() << std::endl;
-			for (int i = 0; i <= 1000000; i++)
+			for (int timestep = 0; timestep <= 1000000; timestep++)
 			{
-				advanceStep(particles, param, partclieMaterial, i);
+				std::cout << "timestep = " << timestep << std::endl;
+				if(timestep % 10 == 0)
+				{
+					std::ofstream outfile2(outputPath + "//bunny_"+std::to_string(timestep) + ".obj", std::ios::trunc);
+					std::ofstream outfile4(outputPath + "//bunnyStress_"+std::to_string(timestep) + ".txt", std::ios::trunc);
+					for (int k = 0; k < numBunnyInteriorVerts; k++)
+					{
+						Eigen::Vector3d scale = particles[k].position;
+
+						Eigen::Matrix3d F = particles[k].F;
+						double J = particles[k].F.determinant();
+						int materialIndex = particles[k].material;
+						Eigen::Matrix3d cauchyStressE = (partclieMaterial[materialIndex].lambda * log(J) / J - partclieMaterial[materialIndex].mu / J) * Eigen::Matrix3d::Identity() + partclieMaterial[materialIndex].mu / J * F * F.transpose();
+						Eigen::EigenSolver<Eigen::MatrixXd> es(cauchyStressE);
+						Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real(), es.eigenvalues()[1].real(), es.eigenvalues()[2].real() };
+						Eigen::Matrix3d eigenVectors;
+						eigenVectors << es.eigenvectors().real();
+						double maxEigenValue = std::max(std::max(eigenValues[0], eigenValues[1]), eigenValues[2]);
+
+
+						outfile2 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << " " << maxEigenValue << std::endl;
+						outfile4 << std::scientific << std::setprecision(8) << scale[0] << " " << scale[1] << " " << scale[2] << " " << maxEigenValue << " " << particles[k].dp << std::endl;
+					}
+					outfile2.close();
+					outfile4.close();
+
+					std::ofstream outfile3(outputPath + "//sphere_" + std::to_string(timestep) + ".obj", std::ios::trunc);
+					for (int k = numBunnyInteriorVerts; k < particles.size(); k++)
+					{
+						Eigen::Vector3d scale = particles[k].position;
+
+						Eigen::Matrix3d F = particles[k].F;
+						double J = particles[k].F.determinant();
+						int materialIndex = particles[k].material;
+						Eigen::Matrix3d cauchyStressE = (partclieMaterial[materialIndex].lambda * log(J) / J - partclieMaterial[materialIndex].mu / J) * Eigen::Matrix3d::Identity() + partclieMaterial[materialIndex].mu / J * F * F.transpose();
+						Eigen::EigenSolver<Eigen::MatrixXd> es(cauchyStressE);
+						Eigen::Vector3d eigenValues = { es.eigenvalues()[0].real(), es.eigenvalues()[1].real(), es.eigenvalues()[2].real() };
+						Eigen::Matrix3d eigenVectors;
+						eigenVectors << es.eigenvectors().real();
+						double maxEigenValue = std::max(std::max(eigenValues[0], eigenValues[1]), eigenValues[2]);
+
+						outfile3 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << " " << maxEigenValue << std::endl;
+					}
+					outfile3.close();
+				}
+
+				advanceStep(particles, param, partclieMaterial, timestep);
 			}
+
+
 
 
 
 		}
+
+
 
 
 

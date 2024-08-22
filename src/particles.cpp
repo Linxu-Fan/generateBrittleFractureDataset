@@ -1,14 +1,14 @@
 ﻿#include "particles.h"
 
 // initialize MPM particles from mesh
-void readBunnyMeshToParticles(std::vector<mpmParticle>& particles, objMesh& bunnyMesh, int materialIndex, double density, double voume, bool breakable, Eigen::Vector3d translation)
+void readBunnyMeshToParticles(std::vector<mpmParticle>& particles, objMesh& bunnyMesh, int materialIndex, double density, double voume, bool breakable, Eigen::Vector3d translation, Eigen::Vector3d velocity)
 {
 	for (int i = 0; i < bunnyMesh.vertices.size(); i++)
 	{
 		{
 			mpmParticle par1;
 			par1.position = bunnyMesh.vertices[i] + translation;
-			par1.velocity = Eigen::Vector3d::Zero();
+			par1.velocity = velocity;
 			par1.volume = voume;
 			par1.material = materialIndex;
 			par1.mass = density * par1.volume;
@@ -35,7 +35,7 @@ void readObjMesh(std::string meshSurfPath, std::string meshParPath, objMesh& mes
 			if (vecCoor[0] == "v")
 			{
 				Eigen::Vector3d vt = {std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
-				meshSurf.vertices.push_back(vt);
+				meshSurf.vertices.push_back(vt + Eigen::Vector3d::Ones());
 			}
 
 			if (vecCoor[0] == "f")
@@ -61,7 +61,7 @@ void readObjMesh(std::string meshSurfPath, std::string meshParPath, objMesh& mes
 			if (vecCoor[0] == "v")
 			{
 				Eigen::Vector3d vt = { std::stod(vecCoor[1]) , std::stod(vecCoor[2]) , std::stod(vecCoor[3]) };
-				meshPars.vertices.push_back(vt);
+				meshPars.vertices.push_back(vt + Eigen::Vector3d::Ones());
 			}
 		}
 	}
@@ -87,7 +87,7 @@ void readSphereObjMesh(std::string meshSpherePath, objMesh& meshSphere, double s
 			if (vecCoor[0] == "v")
 			{
 				Eigen::Vector3d vt = { std::stod(vecCoor[1]) * size , std::stod(vecCoor[2]) * size , std::stod(vecCoor[3]) * size };
-				meshSphere.vertices.push_back(vt);
+				meshSphere.vertices.push_back(vt + Eigen::Vector3d::Ones());
 			}
 		}
 	}
