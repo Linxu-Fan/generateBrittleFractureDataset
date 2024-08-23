@@ -60,6 +60,8 @@ struct parametersSim {
 	// damping coefficient
 	double nu = 0;
 
+	double damageThreshold = 0.97;
+
 
 
 	void updateDenpendecies()
@@ -83,6 +85,15 @@ struct objMesh
 	void calMinMaxCoor();
 	void resizeAndRemove(double size); // resize and remove to region ((1-s)/2,(1-s)/2,(1-s)/2) -> ((1+s)/2,(1+s)/2,(1+s)/2)
 
+};
+
+
+struct meshObjFormat {
+	// input mesh vertices and faces
+	std::vector<Eigen::Vector3d> vertices;
+	std::vector<std::vector<int>> faces;
+	std::vector<int> faceFromVoroCell; // indicate the voronoi cell which the face belongs to
+	std::vector<int> faceFromtheOtherVoroCell; // indicate the voronoi cell which the face belongs to(the other side)
 };
 
 

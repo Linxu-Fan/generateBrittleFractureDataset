@@ -20,14 +20,16 @@ ENDIF()
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(EXTERN_PROJECTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern)
-
+add_subdirectory(${EXTERN_PROJECTS_DIR})
 
 
 
 if(WIN32)
-    list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME} ${EXTERN_PROJECTS_DIR}/eigen )
+	list (APPEND EXTRA_LIBS ${VORO_PLUS_PLUS_LIBRARIES})
+    list (APPEND EXTRA_INCLUDES ${VORO_PLUS_PLUS_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME} ${EXTERN_PROJECTS_DIR}/eigen )
 else()
-    list (APPEND EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME} ${EXTERN_PROJECTS_DIR}/eigen )
+	list (APPEND EXTRA_LIBS ${VORO_PLUS_PLUS_LIBRARIES})
+    list (APPEND EXTRA_INCLUDES ${VORO_PLUS_PLUS_INCLUDE_DIRS}${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME} ${EXTERN_PROJECTS_DIR}/eigen )
 endif()
 
 
@@ -42,9 +44,6 @@ add_executable(
     src/weights.cpp
     src/advance.cpp
     src/utils.cpp
-    src/damageGradient.cpp
-    src/extractCrack.cpp
-    include/generateBrittleFractureDataset/damageGradient.h
     include/generateBrittleFractureDataset/extractCrack.h
     include/generateBrittleFractureDataset/particles.h
     include/generateBrittleFractureDataset/grid.h

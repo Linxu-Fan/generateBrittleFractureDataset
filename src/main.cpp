@@ -628,9 +628,9 @@ int main()
 						
 
 
-				param.force_position = bunnyMeshInterior.vertices[bunnyInteriorVt];
-				param.force_direction = dirToMove.normalized();
-				param.force_magnitude = 200;
+				//param.force_position = bunnyMeshInterior.vertices[bunnyInteriorVt];
+				//param.force_direction = dirToMove.normalized();
+				//param.force_magnitude = 200;
 				
 			}
 

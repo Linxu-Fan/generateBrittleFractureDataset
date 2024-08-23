@@ -5,6 +5,7 @@
 #include "particles.h"
 #include "grid.h"
 #include "weights.h"
+#include "extractCrack.h"
 
 
 // find the surrounding support nodes of each particle and calculate the weights of the particle
@@ -29,6 +30,14 @@ void gridUpdate(std::vector<Grid>& nodesVec, parametersSim& param );
 
 // grid to particle transfer
 void grid2Particle(std::vector<mpmParticle>& particles, parametersSim& param, std::vector<Grid>& nodesVec);
+
+
+// apply point force
+void applyPointForce(parametersSim& param, std::vector<Grid>& nodesVec, std::map<std::string, int>& gridMap);
+
+
+// extract crack surface
+std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryToExtractCracks(std::vector<mpmParticle>& particles, parametersSim& param);
 
 
 // the calculation of each timestep

@@ -409,7 +409,7 @@ void updateParInternalForce(std::vector<mpmParticle>& particles, parametersSim& 
 			{
 				if (eigenValues[i] > 0)
 				{
-					if (particles[f].dp >= particleMaterial[materialIndex].damageThreshold)
+					if (particles[f].dp >= param.damageThreshold)
 					{
 						sigmaPlus[i] = 0;
 					}
@@ -500,7 +500,7 @@ void grid2Particle(std::vector<mpmParticle>& particles, parametersSim& param, st
 	for (int f = 0; f < particles.size(); f++)
 	{
 		Eigen::Vector3d velocity_old = particles[f].velocity;
-		particles[f].velocity = Eigen::Vector3d::Zero(); // Particle-in-cell method
+		particles[f].velocity = Eigen::Vector3d::Zero(); // mpmParticle-in-cell method
 		Eigen::Matrix3d affine = Eigen::Matrix3d::Zero();
 		for (int g = 0; g < particles[f].supportNodes.size(); g++)
 		{
@@ -526,6 +526,73 @@ void grid2Particle(std::vector<mpmParticle>& particles, parametersSim& param, st
 }
 
 
+// apply point force
+void applyPointForce(parametersSim& param, std::vector<Grid>& nodesVec, std::map<std::string, int>& gridMap)
+{
+	Eigen::Vector3d forceMagnitude = param.force_direction * param.force_magnitude;
+	Eigen::Vector3d forcePosition = param.force_position;
+
+
+	struct weightAndDreri WD = calWeight(param.dx, forcePosition);
+	Eigen::Vector3i ppIndex = WD.ppIndex;
+	Eigen::MatrixXd weightForce = WD.weight;
+
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			for (int k = 0; k < 3; k++) {
+				std::string ID = calculateID_string(ppIndex[0] + i, ppIndex[1] + j, ppIndex[2] + k);
+				double weight = weightForce(0, i) * weightForce(1, j) * weightForce(2, k);
+				int nodeIndex = gridMap[ID];
+				if (weight != 0)
+				{
+					int eid = gridMap[ID];
+					nodesVec[nodeIndex].force += weight * forceMagnitude;
+				};
+			};
+		};
+	};
+}
+
+
+// extract crack surface
+std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryToExtractCracks(std::vector<mpmParticle>& particles, parametersSim& param)
+{
+	std::vector<extractCrackSurface::Particle> particlesRaw;
+	extractCrackSurface::parametersSim paramCrack;
+	for (int i = 0; i < particles.size(); i++)
+	{
+		particlesRaw.push_back(extractCrackSurface::Particle(particles[i].position, particles[i].velocity, particles[i].mass, particles[i].color, particles[i].dp));
+	}
+	paramCrack.dx = param.dx;
+	paramCrack.damageThreshold = paramCrack.damageThreshold;
+
+	std::tuple<bool, extractCrackSurface::meshObjFormat, extractCrackSurface::meshObjFormat, std::vector<extractCrackSurface::meshObjFormat>> cracks = extractCrackSurface::extractCrackSurf(&particlesRaw, paramCrack);
+
+	bool findCrackSurface = std::get<0>(cracks);
+
+	meshObjFormat crackSurfacePartialCut; 
+	crackSurfacePartialCut.vertices = std::get<1>(cracks).vertices;
+	crackSurfacePartialCut.faces = std::get<1>(cracks).faces;
+
+	meshObjFormat crackSurfaceFullCut;
+	crackSurfaceFullCut.vertices = std::get<2>(cracks).vertices;
+	crackSurfaceFullCut.faces = std::get<2>(cracks).faces;
+
+	std::vector<meshObjFormat> allFragmentsObj;
+	for (int k = 0; k < std::get<3>(cracks).size(); k++)
+	{
+		meshObjFormat frag;
+		frag.vertices = std::get<3>(cracks)[k].vertices;
+		frag.faces = std::get<3>(cracks)[k].faces;
+		allFragmentsObj.push_back(frag);
+	}
+
+	std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> resultReturn(findCrackSurface, crackSurfacePartialCut, crackSurfaceFullCut, allFragmentsObj);
+	return resultReturn;
+}
+
+
+
 void advanceStep(std::vector<mpmParticle>& particles, parametersSim& param, std::vector<Material>& particleMaterial, int timestep) // prticle vector, timestep
 {
 	// // initialize background grid nodes
@@ -539,38 +606,8 @@ void advanceStep(std::vector<mpmParticle>& particles, parametersSim& param, std:
 	particle2Grid(particles, param, nodesVec);
 	// update each material particle's cauchy stress
 	updateParInternalForce(particles, param, particleMaterial);
-
-
-
-	{
-		Eigen::Vector3d forceMagnitude = param.force_direction * param.force_magnitude;
-		Eigen::Vector3d forcePosition = param.force_position;
-
-
-		struct weightAndDreri WD = calWeight(param.dx, forcePosition);
-		Eigen::Vector3i ppIndex = WD.ppIndex;
-		Eigen::MatrixXd weightForce = WD.weight;
-
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				for (int k = 0; k < 3; k++) {
-					std::string ID = calculateID_string(ppIndex[0] + i, ppIndex[1] + j, ppIndex[2] + k);
-					double weight = weightForce(0, i) * weightForce(1, j) * weightForce(2, k);
-					int nodeIndex = gridMap[ID];
-					if (weight != 0) 
-					{
-						int eid = gridMap[ID];
-						nodesVec[nodeIndex].force += weight * forceMagnitude;
-					};
-				};
-			};
-		};
-	}
-	
-
-	
-
-
+	// apply point force
+	applyPointForce(param, nodesVec, gridMap);
 	// calculate the grid node's internal force induced by particles
 	calculateNodeForce(particles, param, nodesVec);
 	// grid nodes momentum update
@@ -578,16 +615,18 @@ void advanceStep(std::vector<mpmParticle>& particles, parametersSim& param, std:
 	// transfer information back form grid to particles
 	grid2Particle(particles, param, nodesVec);
 
+	if (timestep % 50 == 0)
 	{
-		//std::ofstream outfile3("./output/nodes_" + std::to_string(timestep) + ".obj", std::ios::trunc);
-		//for (int k = 0; k < nodesVec.size(); k++)
-		//{
-		//	Eigen::Vector3d scale = nodesVec[k].position;
-		//	outfile3 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
-		//}
-		//outfile3.close();
-	}
+		std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> crackSurfs = tryToExtractCracks(particles, param);
+		if (std::get<0>(crackSurfs) == true)
+		{
+			std::cout << "********************Find number of crack surface = " << std::get<3>(crackSurfs).size() << std::endl;
 
+			writeObjFile(std::get<1>(crackSurfs).vertices, std::get<1>(crackSurfs).faces, "crackPartial_"+std::to_string(timestep), true);
+			writeObjFile(std::get<2>(crackSurfs).vertices, std::get<2>(crackSurfs).faces, "crackFull_"+std::to_string(timestep), true);
+		}
+	}
+	
 
 };
 
