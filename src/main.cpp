@@ -521,7 +521,7 @@ int main()
 		int numBunnyInteriorVerts = bunnyMeshInterior.vertices.size();
 
 		// generate numData datasets	
-		for (int k = 6743; k < numData; k++)
+		for (int k = 6243; k < numData; k++)
 		{
 			// Ste 1: read bunny particles
 			std::vector<mpmParticle> particles;
@@ -541,17 +541,6 @@ int main()
 						vertSphere.push_back(sphereMeshSurfInterior.vertices[f] + translation);
 					}				
 				}
-
-
-				std::cout << "vertSphere.size() = " << vertSphere.size() << std::endl;
-
-				std::ofstream outfilew3("./output/vtSphere.obj", std::ios::trunc);
-				for (int kw = 0; kw < vertSphere.size(); kw++)
-				{
-					outfilew3 << std::scientific << std::setprecision(8) << "v " << vertSphere[kw][0] << " " << vertSphere[kw][1] << " " << vertSphere[kw][2] << std::endl;
-				}
-				outfilew3.close();
-
 
 
 				// Step 2: calculate the nearest distance to the bunny surface
@@ -636,8 +625,8 @@ int main()
 
 	
 			// Step 3: find nearnest point in the bunny's surface
-			{
-				int nearestPtInBunnySurf = -99;
+			int nearestPtInBunnySurf = -99;
+			{		
 				double minDisIS = 1.0E8;
 				std::cout << "nearestPtInBunnyInterior = " << nearestPtInBunnyInterior << std::endl;
 				Eigen::Vector3d interiorPtCoor = bunnyMeshInterior.vertices[nearestPtInBunnyInterior];
@@ -651,6 +640,51 @@ int main()
 				}
 			}
 
+
+			// Step 4: calculate the contact force
+			{
+				// calculate the equivalent curvature and area at the contact point of the bunny
+				double area = 0, angle = 0;
+				for (int p = 0; p < bunnyMeshSurf.vertTris[nearestPtInBunnySurf].size(); p++)
+				{
+					int triIndex = bunnyMeshSurf.vertTris[nearestPtInBunnySurf][p];
+					Eigen::Vector3i triVts = bunnyMeshSurf.faces[triIndex];
+
+					Eigen::Vector3d a = Eigen::Vector3d::Zero();
+					Eigen::Vector3d b = Eigen::Vector3d::Zero();
+					Eigen::Vector3d c = Eigen::Vector3d::Zero();
+
+					if (nearestPtInBunnySurf == triVts[0])
+					{
+						a = bunnyMeshSurf.vertices[triVts[0]];
+						b = bunnyMeshSurf.vertices[triVts[1]];
+						c = bunnyMeshSurf.vertices[triVts[2]];
+					}
+					else if (nearestPtInBunnySurf == triVts[1])
+					{
+						b = bunnyMeshSurf.vertices[triVts[0]];
+						a = bunnyMeshSurf.vertices[triVts[1]];
+						c = bunnyMeshSurf.vertices[triVts[2]];
+					}
+					else
+					{
+						c = bunnyMeshSurf.vertices[triVts[0]];
+						b = bunnyMeshSurf.vertices[triVts[1]];
+						a = bunnyMeshSurf.vertices[triVts[2]];
+					}
+
+					double areaTri = 0.5 * ((b - a).cross(c - a).norm());
+					area += areaTri / 3.0;
+
+					double angleTri = std::acos((b - a).normalized().dot((c - a).normalized()));
+					angle += angleTri / 3.0;
+				}
+				double deficit = 2.0 * PI - angle;
+				double curvature = deficit / area;
+
+				
+
+			}
 
 
 			std::cout << "particles.size() = " << particles.size() << std::endl;

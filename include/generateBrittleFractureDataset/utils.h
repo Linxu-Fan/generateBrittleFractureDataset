@@ -80,10 +80,14 @@ struct objMesh
 	std::vector<Eigen::Vector3d> vertices;
 	std::vector<Eigen::Vector3i> faces;
 
+
+	std::vector<std::vector<int>> vertTris; // triangles that share this vertex
+
 	std::pair<Eigen::Vector3d, Eigen::Vector3d> minMaxCoor;
 
 	void calMinMaxCoor();
 	void resizeAndRemove(double size); // resize and remove to region ((1-s)/2,(1-s)/2,(1-s)/2) -> ((1+s)/2,(1+s)/2,(1+s)/2)
+	void calVertTris();
 
 };
 

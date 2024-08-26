@@ -234,6 +234,22 @@ void objMesh::resizeAndRemove(double size)
 
 }
 
+
+void objMesh::calVertTris()
+{
+	vertTris.resize(vertices.size());
+
+	for (int v = 0; v < faces.size(); v++)
+	{
+		Eigen::Vector3i fc = faces[v];
+		vertTris[fc[0]].push_back(v);
+		vertTris[fc[1]].push_back(v);
+		vertTris[fc[2]].push_back(v);
+	}
+
+}
+
+
 int generateRandomInt(int min, int max)
 {
 	std::random_device rd;  // obtain a random number from hardware

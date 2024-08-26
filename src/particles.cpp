@@ -49,6 +49,7 @@ void readObjMesh(std::string meshSurfPath, std::string meshParPath, objMesh& mes
 
 	meshSurf.calMinMaxCoor();
 	meshSurf.resizeAndRemove(size);
+	meshSurf.calVertTris();
 
 
 

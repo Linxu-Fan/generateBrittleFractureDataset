@@ -561,7 +561,10 @@ std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryTo
 	extractCrackSurface::parametersSim paramCrack;
 	for (int i = 0; i < particles.size(); i++)
 	{
-		particlesRaw.push_back(extractCrackSurface::Particle(particles[i].position, particles[i].velocity, particles[i].mass, particles[i].color, particles[i].dp));
+		if (particles[i].breakable == true)
+		{
+			particlesRaw.push_back(extractCrackSurface::Particle(particles[i].position, particles[i].velocity, particles[i].mass, particles[i].color, particles[i].dp));
+		}	
 	}
 	paramCrack.dx = param.dx;
 	paramCrack.damageThreshold = paramCrack.damageThreshold;
