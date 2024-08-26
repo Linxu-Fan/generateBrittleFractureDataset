@@ -530,8 +530,8 @@ void grid2Particle(std::vector<mpmParticle>& particles, parametersSim& param, st
 void applyPointForce(parametersSim& param, std::vector<Grid>& nodesVec, std::map<std::string, int>& gridMap)
 {
 	Eigen::Vector3d forceMagnitude = param.force_direction * param.force_magnitude;
-	Eigen::Vector3d forcePosition = param.force_position;
-
+	//Eigen::Vector3d forcePosition = param.force_position;
+	Eigen::Vector3d forcePosition = {0,0,0};
 
 	struct weightAndDreri WD = calWeight(param.dx, forcePosition);
 	Eigen::Vector3i ppIndex = WD.ppIndex;
@@ -610,26 +610,13 @@ void advanceStep(std::vector<mpmParticle>& particles, parametersSim& param, std:
 	// update each material particle's cauchy stress
 	updateParInternalForce(particles, param, particleMaterial);
 	// apply point force
-	applyPointForce(param, nodesVec, gridMap);
+	//applyPointForce(param, nodesVec, gridMap);
 	// calculate the grid node's internal force induced by particles
 	calculateNodeForce(particles, param, nodesVec);
 	// grid nodes momentum update
 	gridUpdate(nodesVec, param);
 	// transfer information back form grid to particles
 	grid2Particle(particles, param, nodesVec);
-
-	if (timestep % 50 == 0)
-	{
-		std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> crackSurfs = tryToExtractCracks(particles, param);
-		if (std::get<0>(crackSurfs) == true)
-		{
-			std::cout << "********************Find number of crack surface = " << std::get<3>(crackSurfs).size() << std::endl;
-
-			writeObjFile(std::get<1>(crackSurfs).vertices, std::get<1>(crackSurfs).faces, "crackPartial_"+std::to_string(timestep), true);
-			writeObjFile(std::get<2>(crackSurfs).vertices, std::get<2>(crackSurfs).faces, "crackFull_"+std::to_string(timestep), true);
-		}
-	}
-	
 
 };
 

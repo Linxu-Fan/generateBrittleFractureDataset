@@ -1019,19 +1019,7 @@ namespace extractCrackSurface
             pointIndexFind[boundaryNodesID[m]] = m;
         }
 
-        std::ofstream outfile45("boundaryNodes.txt", std::ios::trunc);
-        for (int m = 0; m < boundaryNodesPosIndex.size(); m++) {
-            outfile45 << m << " " << std::scientific << std::setprecision(8) << boundaryNodesPosIndex[m][0] * param.dx << " " << boundaryNodesPosIndex[m][1] * param.dx << " " << boundaryNodesPosIndex[m][2] * param.dx << std::endl;
-        }
-        outfile45.close();
 
-
-        std::ofstream outfile12("./output/bunny_points.obj", std::ios::trunc);
-        for (int vert = 0; vert < allParticles.size(); ++vert)
-        {
-            outfile12 << std::scientific << std::setprecision(8) << "v " << allParticles[vert].pos[0] << " " << allParticles[vert].pos[1] << " " << allParticles[vert].pos[2] << " " << std::endl;
-        }
-        outfile12.close();
 
 
         std::cout << "The number of boundary nodes is " << boundaryNodesID.size() << std::endl;
@@ -1275,12 +1263,6 @@ namespace extractCrackSurface
 
         }
 
-        std::ofstream outfile2("./output/globalVertices.obj", std::ios::trunc);
-        for (int vert = 0; vert < globalPoints.size(); ++vert)
-        {
-            outfile2 << std::scientific << std::setprecision(8) << "v " << globalPoints[vert][0] << " " << globalPoints[vert][1] << " " << globalPoints[vert][2] << " " << std::endl;
-        }
-        outfile2.close();
 
 
 

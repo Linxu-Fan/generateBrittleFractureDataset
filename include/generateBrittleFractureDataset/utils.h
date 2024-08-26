@@ -22,6 +22,15 @@
 #include <cassert>
 #include <cstring>
 #include <cfloat>
+#include <sys/stat.h>
+#include <filesystem>
+#include <cassert>
+#include <cstdlib>
+#include <filesystem> 
+#include <fstream> 
+#include <iostream> 
+#include <direct.h>
+
 
 const double PI = 3.141592653589793238463L;
 
@@ -40,7 +49,7 @@ struct parametersSim {
 	Eigen::Vector3d gravity = {0 , 0 , 0 };
 
 
-	Eigen::Vector3d force_position = {0 , 0 , 0 };
+	int force_positionParIndex = -99;
 	Eigen::Vector3d force_direction = {0 , 0 , 0 };
 	double force_magnitude = 0;
 
@@ -114,6 +123,7 @@ std::vector<std::string> split(const std::string& s, const std::string& seperato
 
 // Given the vertices and faces information, write the obj file.
 void writeObjFile(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector<int>> faces, std::string name, bool startFrom0);
+void writeObjFile_fullName(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector<int>> faces, std::string name, bool startFrom0);
 
 // Given the vertices information, write an obj file and an txt file.
 void writeObjFile(std::vector<Eigen::Vector3d> vertices, std::string name);
