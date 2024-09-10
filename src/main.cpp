@@ -1262,8 +1262,28 @@ int main()
 		COM = COM / (double)bunnyMeshInterior_org.vertices.size();
 
 
+
+		{
+			std::ofstream outfile2("./output/bunny_mesh.obj", std::ios::trunc);
+			for (int vert = 0; vert < bunnyMeshSurf_org.vertices.size(); ++vert)
+			{
+				outfile2 << std::scientific << std::setprecision(8) << "v " << bunnyMeshSurf_org.vertices[vert][0] << " " << bunnyMeshSurf_org.vertices[vert][1] << " " << bunnyMeshSurf_org.vertices[vert][2] << " " << std::endl;
+			}
+			for (int face = 0; face < bunnyMeshSurf_org.faces.size(); ++face)
+			{
+				outfile2 << std::scientific << std::setprecision(8) << "f ";
+				for (int vert = 0; vert < bunnyMeshSurf_org.faces[face].size(); ++vert) {
+					outfile2 << std::scientific << std::setprecision(8) << bunnyMeshSurf_org.faces[face][vert] + 1 << " ";
+				}
+				outfile2 << std::endl;
+			}
+			outfile2.close();
+		}
+
+
+
 		// generate numData datasets	
-		for (int k = 0; k < 700; k++)
+		for (int k = 46; k < 700; k++)
 		{
 			int surfParIndex = k * 100, interiorParIndex = -99;;
 			std::vector<Eigen::Vector3d> vertSphere;
