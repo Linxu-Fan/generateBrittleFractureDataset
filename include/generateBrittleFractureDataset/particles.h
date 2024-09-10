@@ -37,6 +37,10 @@ struct mpmParticle {
 	Eigen::Vector3d deltaD = { 0 , 0 , 0 }; // particle's damage gradient
 	double Dg = 0;
 
+	int nearestPoint = -1000;
+	Eigen::Vector3d crackSurfaceNormal = { 0, 0, 0 };
+
+
 };
 
 

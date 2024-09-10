@@ -43,12 +43,14 @@ add_executable(
     src/particles.cpp
     src/weights.cpp
     src/advance.cpp
+	src/advanceMassive.cpp
     src/utils.cpp
     include/generateBrittleFractureDataset/extractCrack.h
     include/generateBrittleFractureDataset/particles.h
     include/generateBrittleFractureDataset/grid.h
     include/generateBrittleFractureDataset/weights.h
     include/generateBrittleFractureDataset/advance.h
+	include/generateBrittleFractureDataset/advanceMassive.h
     include/generateBrittleFractureDataset/materials.h
     include/generateBrittleFractureDataset/utils.h)
     

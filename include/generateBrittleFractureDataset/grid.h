@@ -33,6 +33,23 @@ struct Grid {
 	double sw = 0; // sum of particle-grid weight
 	Eigen::Vector3d deltaDi = { 0, 0, 0 };
 
+
+	// set of crack surface points withing the grid cell
+	std::vector<int> crackPoints;
+	int nearestPoint = -1000; // (nearestPoint < 0) means it is far away from the crack surface
+	Eigen::Vector3d crackSurfaceNormal = { 0,0,0 }; // the vector pointing from the nearest point on the crack surface to the grid node
+
+	// parameters of contact algorithm
+	double mass_0 = 0;
+	Eigen::Vector3d mom_0 = { 0 , 0 , 0 };
+	Eigen::Vector3d velocity_0 = { 0 , 0 , 0 };
+	Eigen::Vector3d force_0 = { 0 , 0 , 0 };
+
+	double mass_1 = 0;
+	Eigen::Vector3d mom_1 = { 0 , 0 , 0 };
+	Eigen::Vector3d velocity_1 = { 0 , 0 , 0 };
+	Eigen::Vector3d force_1 = { 0 , 0 , 0 };
+
 };
 
 

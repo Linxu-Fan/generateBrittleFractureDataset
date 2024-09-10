@@ -46,6 +46,13 @@ struct parametersSim {
 	// number of parallel threads
 	int numOfThreads = 6;
 
+	Eigen::Vector3d length = { 1, 1, 1 }; // computation cube lengths of three dimensions (x , y , z). The origin point is (0 , 0 , 0)
+	Eigen::Vector3d minCoordinate = { 0, 0, 0 }; // the minimum coordinate of the computation domain
+
+	// applied force
+	std::vector< std::pair<Eigen::Vector3d, Eigen::Vector3d> > appliedForce;
+
+
 	Eigen::Vector3d gravity = {0 , 0 , 0 };
 
 
@@ -69,7 +76,9 @@ struct parametersSim {
 	// damping coefficient
 	double nu = 0;
 
-	double damageThreshold = 0.97;
+	double damageThreshold = 0.97; // after this threshold, the damage value is updated by a sigmoid function to let it approach 1 but never reach 1
+	double sigmoidK = 5; // this parameter control the curevature of the sigmoid function. It is recommend that it is bigger than 5
+
 
 
 
@@ -105,9 +114,26 @@ struct meshObjFormat {
 	// input mesh vertices and faces
 	std::vector<Eigen::Vector3d> vertices;
 	std::vector<std::vector<int>> faces;
+	std::vector<Eigen::Vector3d> facesNormal;
 	std::vector<int> faceFromVoroCell; // indicate the voronoi cell which the face belongs to
 	std::vector<int> faceFromtheOtherVoroCell; // indicate the voronoi cell which the face belongs to(the other side)
 };
+
+
+// return a matrix and two double values
+struct matrixAndTwoValues {
+	Eigen::Matrix3d F; //matrix
+	double Dp; //double value
+	double Dg; //double value
+
+	matrixAndTwoValues(Eigen::Matrix3d iF, double iDp, double iDg)
+		: F(iF)
+		, Dp(iDp)
+		, Dg(iDg)
+	{
+	}
+};
+
 
 
 int generateRandomInt(int min, int max);
@@ -123,7 +149,7 @@ std::vector<std::string> split(const std::string& s, const std::string& seperato
 
 // Given the vertices and faces information, write the obj file.
 void writeObjFile(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector<int>> faces, std::string name, bool startFrom0);
-void writeObjFile_fullName(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector<int>> faces, std::string name, bool startFrom0);
+void writeObjFile_fullName(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector<int>> faces, std::string name, Eigen::Vector3d& deviation, bool startFrom0);
 
 // Given the vertices information, write an obj file and an txt file.
 void writeObjFile(std::vector<Eigen::Vector3d> vertices, std::string name);

@@ -93,12 +93,12 @@ void writeObjFile(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector
 
 
 // Given the vertices and faces information, write the obj file.
-void writeObjFile_fullName(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector<int>> faces, std::string name, bool startFrom0 = true)
+void writeObjFile_fullName(std::vector<Eigen::Vector3d> vertices, std::vector<std::vector<int>> faces, std::string name, Eigen::Vector3d& deviation, bool startFrom0 = true)
 {
 	std::ofstream outfile2(name, std::ios::trunc);
 	for (int vert = 0; vert < vertices.size(); ++vert)
 	{
-		outfile2 << std::scientific << std::setprecision(8) << "v " << vertices[vert][0] << " " << vertices[vert][1] << " " << vertices[vert][2] << " " << std::endl;
+		outfile2 << std::scientific << std::setprecision(8) << "v " << vertices[vert][0] + deviation[0] << " " << vertices[vert][1] + deviation[1] << " " << vertices[vert][2] + deviation[2] << " " << std::endl;
 	}
 
 	if (startFrom0)
