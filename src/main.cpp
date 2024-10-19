@@ -1283,7 +1283,7 @@ int main()
 
 
 		// generate numData datasets	
-		for (int k = 46; k < 700; k++)
+		for (int k = 68; k < 700; k++)
 		{
 			int surfParIndex = k * 100, interiorParIndex = -99;;
 			std::vector<Eigen::Vector3d> vertSphere;
@@ -1350,22 +1350,50 @@ int main()
 
 
 			bool generateFragments = false;
+			bool simulationFailed = false;
 			std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> crackSurfs;
-			for (int timestep = 0; timestep <= 2000 && generateFragments == false; timestep++)
+			for (int timestep = 0; timestep <= 2000 && generateFragments == false && !simulationFailed; timestep++)
 			{
-				std::cout << "timestep = " << timestep << std::endl;
+				std::cout <<"Trial = "<< k <<"; timestep = " << timestep << std::endl;
+
 
 
 				advanceStep(particles, param, partclieMaterial, timestep);
 
-				if (timestep % 20 == 0)
+				// The simulation fails due to unexpected reasons. Test
+				for (int k = 0; k < numBunnyInteriorVerts; k++)
 				{
+					Eigen::Vector3d scale = particles[k].position;
+					if (scale.hasNaN() || scale.array().isInf().any())
+					{
+						std::cout << "Conataining inf or NaN, exit!" << std::endl << std::endl << std::endl;
+						simulationFailed = true;
+						break;
+					}
+				}
+
+				if (timestep % 20 == 0 && !simulationFailed)
+				{
+					{
+						std::ofstream outfile2(outputPath + "//particles_"+std::to_string(k)+"_"+std::to_string(timestep)+".txt", std::ios::trunc);
+						for (int k = 0; k < numBunnyInteriorVerts; k++)
+						{
+							Eigen::Vector3d scale = particles[k].position;
+
+							outfile2 << std::scientific << std::setprecision(8) << "v " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
+						}
+						outfile2.close();
+
+					}
+
+
 					crackSurfs = tryToExtractCracks(particles, param);
 					if (std::get<0>(crackSurfs) == true && std::get<3>(crackSurfs).size() > 1)
 					{
 						generateFragments = true;
 					}
 				}
+				
 			}
 			
 			if (generateFragments == true)
