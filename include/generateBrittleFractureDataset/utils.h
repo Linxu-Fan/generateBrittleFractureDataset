@@ -29,7 +29,12 @@
 #include <filesystem> 
 #include <fstream> 
 #include <iostream> 
+#ifdef _WIN32
 #include <direct.h>
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
 
 
 const double PI = 3.141592653589793238463L;

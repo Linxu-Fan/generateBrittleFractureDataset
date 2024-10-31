@@ -1199,15 +1199,21 @@ int main()
 	}
 	else
 	{
-		int numOfThreads = 32;
+		int numOfThreads = 40;
 		std::string outputPath = ".//output";
 
-		if (mkdir(".//output") == -1)
-		{
-			std::cout << " Error : " << strerror(errno) << std::endl;
-		}
 			
-
+		#ifdef _WIN32
+			if (mkdir(".//output") == -1)
+			{
+				std::cout << " Error : " << strerror(errno) << std::endl;
+			}
+		#else
+			if (mkdir(".//output", 0777) == -1)
+			{
+				std::cout << " Error : " << strerror(errno) << std::endl;
+			}
+		#endif
 
 
 		std::random_device rd;
@@ -1401,10 +1407,21 @@ int main()
 
 				std::string folder = ".//output//VT_" + std::to_string(k);
 
-				if (mkdir(folder.c_str()) == -1)
-				{
-					std::cout << " Error : " << strerror(errno) << std::endl;
-				}
+
+
+			
+				#ifdef _WIN32
+					if (mkdir(folder.c_str()) == -1)
+					{
+						std::cout << " Error : " << strerror(errno) << std::endl;
+					}
+				#else
+					if (mkdir(folder.c_str(), 0777) == -1)
+					{
+						std::cout << " Error : " << strerror(errno) << std::endl;
+					}
+				#endif
+
 
 				// output crack surface and fragments
 				writeObjFile_fullName(std::get<2>(crackSurfs).vertices, std::get<2>(crackSurfs).faces, folder + "/crackSurfaceFull.obj", true);
