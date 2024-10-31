@@ -1199,7 +1199,7 @@ int main()
 	}
 	else
 	{
-		int numOfThreads = 8;
+		int numOfThreads = 32;
 		std::string outputPath = ".//output";
 
 		if (mkdir(".//output") == -1)
@@ -1246,7 +1246,7 @@ int main()
 
 
 		objMesh bunnyMeshSurf_org, bunnyMeshInterior_org;
-		readObjMesh("../input/bunny.obj", "../input/bunnyParticles_" + std::to_string(numBunnyInteriorPar) + ".obj", bunnyMeshSurf_org, bunnyMeshInterior_org, 0.95);
+		readObjMesh("../input/lion.obj", "../input/lionParticles_" + std::to_string(numBunnyInteriorPar) + ".obj", bunnyMeshSurf_org, bunnyMeshInterior_org, 0.95);
 		objMesh sphereMeshSurfInterior_org;
 
 		readSphereObjMesh("../input/sphereParticles.obj", sphereMeshSurfInterior_org, sphereRadius);
@@ -1264,7 +1264,7 @@ int main()
 
 
 		{
-			std::ofstream outfile2("./output/bunny_mesh.obj", std::ios::trunc);
+			std::ofstream outfile2("./output/lion_mesh.obj", std::ios::trunc);
 			for (int vert = 0; vert < bunnyMeshSurf_org.vertices.size(); ++vert)
 			{
 				outfile2 << std::scientific << std::setprecision(8) << "v " << bunnyMeshSurf_org.vertices[vert][0] << " " << bunnyMeshSurf_org.vertices[vert][1] << " " << bunnyMeshSurf_org.vertices[vert][2] << " " << std::endl;
@@ -1283,9 +1283,9 @@ int main()
 
 
 		// generate numData datasets	
-		for (int k = 68; k < 700; k++)
+		for (int k = 329; k < 700; k++)
 		{
-			int surfParIndex = k * 100, interiorParIndex = -99;;
+			int surfParIndex = k * 70, interiorParIndex = -99;;
 			std::vector<Eigen::Vector3d> vertSphere;
 			for (int f = 0; f < sphereMeshSurfInterior_org.vertices.size(); f++)
 			{
@@ -1374,7 +1374,7 @@ int main()
 
 				if (timestep % 20 == 0 && !simulationFailed)
 				{
-					{
+					/*{
 						std::ofstream outfile2(outputPath + "//particles_"+std::to_string(k)+"_"+std::to_string(timestep)+".txt", std::ios::trunc);
 						for (int k = 0; k < numBunnyInteriorVerts; k++)
 						{
@@ -1384,10 +1384,10 @@ int main()
 						}
 						outfile2.close();
 
-					}
+					}*/
 
 
-					crackSurfs = tryToExtractCracks(particles, param);
+					crackSurfs = tryToExtractCracks(particles, param, timestep);
 					if (std::get<0>(crackSurfs) == true && std::get<3>(crackSurfs).size() > 1)
 					{
 						generateFragments = true;
@@ -1415,7 +1415,7 @@ int main()
 
 
 				{
-					std::ofstream outfile2(outputPath + "//bunny.obj", std::ios::trunc);
+					std::ofstream outfile2(outputPath + "//lion.obj", std::ios::trunc);
 					for (int k = 0; k < numBunnyInteriorVerts; k++)
 					{
 						Eigen::Vector3d scale = particles[k].position;

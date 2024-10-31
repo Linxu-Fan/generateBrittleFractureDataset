@@ -927,7 +927,7 @@ namespace extractCrackSurface
     }
 
     // Extract the crack surface
-    static std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> extractCrackSurf(std::vector<Particle>* particlesRaw, struct parametersSim param)
+    static std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> extractCrackSurf(std::vector<Particle>* particlesRaw, struct parametersSim param, int timestep)
     {
 
         std::cout << "Start extracting" << std::endl;
@@ -1168,6 +1168,7 @@ namespace extractCrackSurface
                     {
                         if (points[i].faceIndexed[k] == false)
                         {
+
                             points[i].faceIndexed[k] = true;
                             std::vector<int> curr_face = points[i].verticesFace[k];
                             std::vector<int> neig_face;
@@ -1182,6 +1183,16 @@ namespace extractCrackSurface
                                 }
                             }
                             std::reverse(neig_face.begin(), neig_face.end());
+
+                            // !!!!!!! Voro++ is unstable. Here is a failure case: cell_j has no corresponding face wrt cell_i even if there are neighbours
+                            if (neig_face.size() != curr_face.size())
+                            {
+                                std::cout << "!!!! Voro++ internal error: No faces correspondence!"  << std::endl;
+                                std::vector<meshObjFormat> allFragmentsObj;
+                                meshObjFormat crackSurfacePartialCut, crackSurfaceFullCut;
+                                std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> resultReturn(false, crackSurfacePartialCut, crackSurfaceFullCut, allFragmentsObj);
+                                return resultReturn;
+                            }
 
                             // extend the vector to facilite indexing
                             std::vector<int> neig_face_ext = neig_face;

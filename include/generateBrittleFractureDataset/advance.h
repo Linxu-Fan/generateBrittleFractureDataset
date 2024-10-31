@@ -37,7 +37,7 @@ void applyPointForce(parametersSim& param, std::vector<Grid>& nodesVec, std::map
 
 
 // extract crack surface
-std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryToExtractCracks(std::vector<mpmParticle>& particles, parametersSim& param);
+std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryToExtractCracks(std::vector<mpmParticle>& particles, parametersSim& param, int timestep);
 
 
 // the calculation of each timestep

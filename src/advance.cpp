@@ -555,7 +555,7 @@ void applyPointForce(parametersSim& param, std::vector<Grid>& nodesVec, std::map
 
 
 // extract crack surface
-std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryToExtractCracks(std::vector<mpmParticle>& particles, parametersSim& param)
+std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryToExtractCracks(std::vector<mpmParticle>& particles, parametersSim& param, int timestep)
 {
 	std::vector<extractCrackSurface::Particle> particlesRaw;
 	extractCrackSurface::parametersSim paramCrack;
@@ -569,7 +569,7 @@ std::tuple<bool, meshObjFormat, meshObjFormat, std::vector<meshObjFormat>> tryTo
 	paramCrack.dx = param.dx;
 	paramCrack.damageThreshold = paramCrack.damageThreshold;
 
-	std::tuple<bool, extractCrackSurface::meshObjFormat, extractCrackSurface::meshObjFormat, std::vector<extractCrackSurface::meshObjFormat>> cracks = extractCrackSurface::extractCrackSurf(&particlesRaw, paramCrack);
+	std::tuple<bool, extractCrackSurface::meshObjFormat, extractCrackSurface::meshObjFormat, std::vector<extractCrackSurface::meshObjFormat>> cracks = extractCrackSurface::extractCrackSurf(&particlesRaw, paramCrack, timestep);
 
 	bool findCrackSurface = std::get<0>(cracks);
 
