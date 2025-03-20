@@ -1,1 +1,1 @@
-# generateBrittleFractureDataset
+This code automatically generates a brittle fracture dataset using the Material Point Method (MPM) for a watertight triangle mesh. The mesh is first normalized to a unit length scale. Then, a small rigid sphere strikes the object from random directions. The outputs include the contact force, fracture surfaces, and resulting fragments.
